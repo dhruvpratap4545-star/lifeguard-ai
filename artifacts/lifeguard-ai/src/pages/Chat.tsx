@@ -19,8 +19,11 @@ export default function Chat() {
   const { data: conversations, refetch: refetchConvs } = useListOpenaiConversations();
   const activeConvId = conversations?.[0]?.id;
 
-  // activeConvId ?? 0: hook always runs; returns [] for id=0 (no conversation yet)
-  const { data: serverMessages, refetch: refetchMessages } = useListOpenaiMessages(activeConvId ?? 0);
+  // Only fetch messages when a conversation actually exists; pass enabled:false otherwise
+  const { data: serverMessages, refetch: refetchMessages } = useListOpenaiMessages(
+    activeConvId ?? 0,
+    { query: { enabled: !!activeConvId } as any }
+  );
 
   const createConv = useCreateOpenaiConversation();
 
@@ -158,7 +161,7 @@ export default function Chat() {
       <header className="px-5 py-4 border-b border-border bg-card/60 backdrop-blur z-10 sticky top-0 flex items-center justify-between">
         <div className="flex items-center gap-2.5">
           <MessageCircle className="text-primary w-5 h-5" />
-          <h1 className="text-base font-bold font-mono tracking-widest">AI MED-ASSIST</h1>
+          <h1 className="text-base font-bold font-mono tracking-widest">DHRUV AI MED-ASSIST</h1>
           {(isSending || isVoicePlaying) && (
             <span className="flex items-center gap-1 text-xs text-primary font-mono">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
