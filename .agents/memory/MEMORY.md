@@ -1,1 +1,2 @@
 - [OpenAI Integration](openai-integration.md) — voice AI + real chat; key gotchas for voiceChatStream types, useListOpenaiMessages, and Zod v3 patch.
+- [Expo Mobile App](expo-mobile-app.md) — LifeGuard AI native app; key gotchas for expo-sensors version, SensorContext pattern, and CORS on web preview.

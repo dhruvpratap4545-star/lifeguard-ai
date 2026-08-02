@@ -1,0 +1,24 @@
+kind = "mobile"
+previewPath = "/lifeguard-mobile/"
+title = "LifeGuard AI Mobile"
+description = "A React Native Expo companion app for LifeGuard AI — the personal emergency detection system. Features fall detection via accelerometer, GPS location tracking, SOS emergency triggers, AI companion chat, emergency contacts management, and incident history. Uses Expo's native sensor and location APIs for more reliable detection than browser APIs, and connects to the shared LifeGuard AI backend."
+version = "1.0.0"
+id = "artifacts/lifeguard-mobile"
+router = "expo-domain"
+
+[[services]]
+name = "expo"
+ensurePreviewReachable = "/status"
+paths = [ "/lifeguard-mobile/" ]
+localPort = 20242
+
+[services.development]
+run = "pnpm --filter @workspace/lifeguard-mobile run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/lifeguard-mobile", "run", "build" ]
+run = [ "pnpm", "--filter", "@workspace/lifeguard-mobile", "run", "serve" ]
+
+[services.env]
+PORT = "20242"
+BASE_PATH = "/lifeguard-mobile/"
