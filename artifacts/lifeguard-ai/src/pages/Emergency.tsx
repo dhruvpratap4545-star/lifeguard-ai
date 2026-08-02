@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation } from 'wouter';
 import { useSensorEngine } from '@/hooks/useSensorEngine';
 import { useEmergencyCountdown } from '@/hooks/useEmergencyCountdown';
@@ -11,21 +11,37 @@ import { toast } from 'sonner';
 import EmergencyMap from '@/components/EmergencyMap';
 
 export default function Emergency() {
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const searchParams = new URLSearchParams(window.location.search);
   const mode = searchParams.get('mode'); // 'sos' or null
 
   const createEmergency = useCreateEmergencySession();
-  // We mock createGpsBroadcast as it wasn't exposed in hooks but we can use the GPS engine data inside the emergency payload
-  
-  const { coords, startTracking } = useGpsEngine();
-  
+  const createGpsBroadcast = useCreateGpsBroadcast();
+
+  // Ref so the GPS callback always sees the latest sessionId without stale closure
+  const activeSessionIdRef = useRef<number | null>(null);
+
+  const { coords, startTracking } = useGpsEngine((loc) => {
+    const sid = activeSessionIdRef.current;
+    if (sid !== null) {
+      createGpsBroadcast.mutate({
+        data: {
+          sessionId: sid,
+          latitude: loc.latitude,
+          longitude: loc.longitude,
+          accuracy: loc.accuracy ?? undefined,
+          speed: loc.speed ?? undefined,
+          altitude: loc.altitude ?? undefined,
+        },
+      });
+    }
+  });
+
   const [showCountdown, setShowCountdown] = useState(mode === 'sos');
   const [activeTrigger, setActiveTrigger] = useState<'fall' | 'crash' | 'sos' | null>(mode === 'sos' ? 'sos' : null);
   const [finalMagnitude, setFinalMagnitude] = useState<number>(0);
 
   const handleEmergencyConfirmed = () => {
-    // End of countdown or manual Call
     createEmergency.mutate({
       data: {
         triggerType: activeTrigger || 'manual',
@@ -35,7 +51,24 @@ export default function Emergency() {
         countdownSeconds: 15,
       }
     }, {
-      onSuccess: () => {
+      onSuccess: (session) => {
+        // Store session ID so GPS callbacks start tagging broadcasts
+        activeSessionIdRef.current = session.id;
+
+        // Send an immediate broadcast with the confirmed coordinates
+        if (coords) {
+          createGpsBroadcast.mutate({
+            data: {
+              sessionId: session.id,
+              latitude: coords.latitude,
+              longitude: coords.longitude,
+              accuracy: coords.accuracy ?? undefined,
+              speed: coords.speed ?? undefined,
+              altitude: coords.altitude ?? undefined,
+            },
+          });
+        }
+
         toast.success('Emergency Session Active. Broadcasting GPS.');
         setLocation('/');
       },
@@ -58,7 +91,6 @@ export default function Emergency() {
     history,
     startDetection,
     stopDetection,
-    triggerType
   } = useSensorEngine({
     onFallDetected: (mag) => {
       setFinalMagnitude(mag);
@@ -188,7 +220,7 @@ export default function Emergency() {
             Emergency broadcast initiating in:
           </p>
 
-          {/* Live GPS Map */}
+          {/* Live GPS Map — updates pin as coords change */}
           {coords ? (
             <div className="w-full max-w-xs mb-4 rounded-xl overflow-hidden">
               <EmergencyMap
@@ -201,6 +233,10 @@ export default function Emergency() {
               <p className="text-[10px] text-muted-foreground font-mono text-center mt-1 flex items-center justify-center gap-1">
                 <Navigation className="w-3 h-3 text-primary" />
                 {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
+                <span className="ml-1 inline-flex items-center gap-1 text-emerald-500">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 pulsing-red inline-block" />
+                  LIVE
+                </span>
               </p>
             </div>
           ) : (
