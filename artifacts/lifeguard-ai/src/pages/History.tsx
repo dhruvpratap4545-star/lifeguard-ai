@@ -2,6 +2,7 @@ import { useListEmergencySessions } from '@workspace/api-client-react';
 import { Clock, ShieldAlert, Activity, Navigation, ChevronDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useState } from 'react';
+import EmergencyMap from '@/components/EmergencyMap';
 
 export default function History() {
   const { data: sessions, isLoading } = useListEmergencySessions();
@@ -78,7 +79,7 @@ export default function History() {
 
               {/* Expanded Details */}
               {expanded === session.id && (
-                <div className="px-4 pb-4 pt-2 border-t border-border bg-black/20 animate-in slide-in-from-top-2 fade-in">
+                <div className="px-4 pb-4 pt-2 border-t border-border bg-black/20 animate-in slide-in-from-top-2 fade-in space-y-3">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <p className="text-[10px] text-muted-foreground uppercase font-mono mb-1">Peak Magnitude</p>
@@ -88,10 +89,20 @@ export default function History() {
                       <p className="text-[10px] text-muted-foreground uppercase font-mono mb-1">Location</p>
                       <p className="text-sm font-mono flex items-center gap-1">
                         <Navigation className="w-3 h-3 text-primary" />
-                        {session.latitude.toFixed(2)}, {session.longitude.toFixed(2)}
+                        {session.latitude.toFixed(4)}, {session.longitude.toFixed(4)}
                       </p>
                     </div>
                   </div>
+                  {/* Mini map */}
+                  {(session.latitude !== 0 || session.longitude !== 0) && (
+                    <EmergencyMap
+                      latitude={session.latitude}
+                      longitude={session.longitude}
+                      height={140}
+                      zoom={14}
+                      pulse={session.status === 'active'}
+                    />
+                  )}
                 </div>
               )}
             </div>

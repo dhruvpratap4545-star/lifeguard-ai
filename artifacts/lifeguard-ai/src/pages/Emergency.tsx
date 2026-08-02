@@ -4,10 +4,11 @@ import { useSensorEngine } from '@/hooks/useSensorEngine';
 import { useEmergencyCountdown } from '@/hooks/useEmergencyCountdown';
 import { useGpsEngine } from '@/hooks/useGpsEngine';
 import { useCreateEmergencySession, useCreateGpsBroadcast } from '@workspace/api-client-react';
-import { ShieldAlert, Shield, Activity, X, PhoneCall, AlertOctagon } from 'lucide-react';
+import { ShieldAlert, Shield, Activity, X, PhoneCall, AlertOctagon, Navigation } from 'lucide-react';
 import { LineChart, Line, YAxis, ResponsiveContainer } from 'recharts';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import EmergencyMap from '@/components/EmergencyMap';
 
 export default function Emergency() {
   const [location, setLocation] = useLocation();
@@ -183,20 +184,41 @@ export default function Emergency() {
             {activeTrigger === 'sos' ? 'SOS Triggered' : `${activeTrigger} Detected`}
           </h2>
           
-          <p className="text-muted-foreground text-center mb-12 text-sm max-w-xs">
+          <p className="text-muted-foreground text-center mb-4 text-sm max-w-xs">
             Emergency broadcast initiating in:
           </p>
 
-          <div className="relative flex items-center justify-center mb-16">
-            <svg className="w-64 h-64 transform -rotate-90">
-              <circle cx="128" cy="128" r="120" stroke="currentColor" strokeWidth="8" fill="transparent" className="text-secondary" />
+          {/* Live GPS Map */}
+          {coords ? (
+            <div className="w-full max-w-xs mb-4 rounded-xl overflow-hidden">
+              <EmergencyMap
+                latitude={coords.latitude}
+                longitude={coords.longitude}
+                height={160}
+                zoom={15}
+                pulse
+              />
+              <p className="text-[10px] text-muted-foreground font-mono text-center mt-1 flex items-center justify-center gap-1">
+                <Navigation className="w-3 h-3 text-primary" />
+                {coords.latitude.toFixed(5)}, {coords.longitude.toFixed(5)}
+              </p>
+            </div>
+          ) : (
+            <div className="w-full max-w-xs mb-4 h-[160px] rounded-xl bg-secondary/30 border border-border flex items-center justify-center">
+              <p className="text-muted-foreground text-xs font-mono">Acquiring GPS…</p>
+            </div>
+          )}
+
+          <div className="relative flex items-center justify-center mb-6">
+            <svg className="w-40 h-40 transform -rotate-90">
+              <circle cx="80" cy="80" r="72" stroke="currentColor" strokeWidth="6" fill="transparent" className="text-secondary" />
               <circle 
-                cx="128" cy="128" r="120" 
+                cx="80" cy="80" r="72" 
                 stroke="currentColor" 
-                strokeWidth="8" 
+                strokeWidth="6" 
                 fill="transparent" 
-                strokeDasharray="754" 
-                strokeDashoffset={754 - (754 * secondsLeft) / 15}
+                strokeDasharray="452" 
+                strokeDashoffset={452 - (452 * secondsLeft) / 15}
                 className={cn(
                   "transition-all duration-1000 ease-linear",
                   secondsLeft < 6 ? "text-destructive" : "text-primary"
@@ -204,7 +226,7 @@ export default function Emergency() {
               />
             </svg>
             <span className={cn(
-              "absolute text-8xl font-black font-mono",
+              "absolute text-6xl font-black font-mono",
               secondsLeft < 6 ? "text-destructive pulsing-red" : "text-white"
             )}>
               {secondsLeft}
