@@ -99,7 +99,7 @@ router.post("/chat-sessions/:id/messages", async (req, res): Promise<void> => {
     .limit(10);
 
   // Generate AI response
-  const aiContent = generateAIResponse(parsed.data.content, session.context ?? "general", recentMessages);
+  const aiContent = await generateAIResponse(parsed.data.content, session.context ?? "general", recentMessages);
 
   const [aiMessage] = await db
     .insert(chatMessagesTable)

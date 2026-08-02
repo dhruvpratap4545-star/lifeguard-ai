@@ -1,6 +1,9 @@
 import type { ChatMessage } from "@workspace/db";
+import OpenAI from "openai";
 
 type MessageContext = "emergency" | "general" | "firstaid" | string;
+
+// ─── Keyword Fallback Data ─────────────────────────────────────────────────
 
 const EMERGENCY_RESPONSES = [
   "I've detected your emergency signal. Stay calm — help is on the way. Your GPS coordinates are being broadcast. Can you confirm your current condition?",
@@ -57,11 +60,7 @@ function pickRandom<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-export function generateAIResponse(
-  userMessage: string,
-  context: MessageContext,
-  _history: ChatMessage[]
-): string {
+function generateKeywordResponse(userMessage: string, context: MessageContext): string {
   const topic = detectTopic(userMessage);
 
   if (topic && topic in FIRSTAID_RESPONSES) {
@@ -98,4 +97,113 @@ export function generateAIResponse(
   }
 
   return `I'm your LifeGuard AI safety companion. I'm here to help with emergencies, first aid guidance, and safety monitoring. You can ask me about: first aid procedures (CPR, bleeding, burns, fractures), how to set up emergency contacts, or how the fall detection sensor works. What do you need?`;
+}
+
+// ─── LLM Client ───────────────────────────────────────────────────────────
+
+const SYSTEM_PROMPT = `You are LifeGuard AI, a calm and expert emergency safety companion built into a personal safety app. Your role is to provide clear, accurate, and reassuring guidance during emergencies, first aid situations, and safety monitoring.
+
+Key principles:
+- Stay calm and composed — your tone directly affects how a distressed user feels
+- Be concise and actionable — in an emergency, every second counts
+- Prioritize life safety above all else — always recommend calling 911 for life-threatening situations
+- Draw on accurate first aid and emergency response protocols (Red Cross, AHA, FEMA guidelines)
+- Be empathetic but efficient — acknowledge the user's situation briefly, then guide them
+- Never give medical diagnoses, but do give clear first aid instructions
+
+You assist with:
+- Emergency response and SOS coordination
+- Step-by-step first aid guidance (CPR, bleeding, burns, fractures, choking, shock, seizures, strokes, allergic reactions, heart attacks)
+- Fall detection alerts and injury assessment
+- Emergency contact management and GPS tracking features
+- Personal safety tips and preparedness
+
+When the context is "emergency", treat it as an active emergency situation. When the context is "firstaid", focus on first aid guidance. For general conversations, be helpful and reassuring about the app's safety features.
+
+Always end with a clear next step or question to keep the user engaged and safe.`;
+
+let _client: OpenAI | null | undefined = undefined; // undefined = not yet checked
+
+function getOpenAIClient(): OpenAI | null {
+  if (_client !== undefined) return _client;
+
+  const baseURL = process.env.AI_INTEGRATIONS_OPENAI_BASE_URL;
+  const apiKey = process.env.AI_INTEGRATIONS_OPENAI_API_KEY;
+
+  if (!baseURL || !apiKey) {
+    _client = null;
+    return null;
+  }
+
+  _client = new OpenAI({ apiKey, baseURL });
+  return _client;
+}
+
+// ─── Main Export ──────────────────────────────────────────────────────────
+
+const MAX_HISTORY_MESSAGES = 10;
+
+export async function generateAIResponse(
+  userMessage: string,
+  context: MessageContext,
+  history: ChatMessage[]
+): Promise<string> {
+  const client = getOpenAIClient();
+
+  if (!client) {
+    return generateKeywordResponse(userMessage, context);
+  }
+
+  try {
+    // Build conversation history for context (exclude the just-inserted user message
+    // since we pass it separately as the final user turn)
+    const historyMessages = history
+      .slice(-MAX_HISTORY_MESSAGES)
+      .filter((m) => m.role === "user" || m.role === "assistant")
+      .map((m) => ({
+        role: m.role as "user" | "assistant",
+        content: m.content,
+      }));
+
+    // The last message in history is the user's current message (just inserted).
+    // If it matches, avoid duplicating it.
+    const lastHistoryMsg = historyMessages[historyMessages.length - 1];
+    const conversationMessages: OpenAI.ChatCompletionMessageParam[] =
+      lastHistoryMsg?.role === "user" && lastHistoryMsg.content === userMessage
+        ? [
+            { role: "system", content: buildSystemPromptWithContext(context) },
+            ...historyMessages,
+          ]
+        : [
+            { role: "system", content: buildSystemPromptWithContext(context) },
+            ...historyMessages,
+            { role: "user", content: userMessage },
+          ];
+
+    const response = await client.chat.completions.create({
+      model: "gpt-5.6-luna",
+      max_completion_tokens: 512,
+      messages: conversationMessages,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    if (content && content.trim().length > 0) {
+      return content.trim();
+    }
+
+    return generateKeywordResponse(userMessage, context);
+  } catch (err) {
+    console.error("[aiCompanion] LLM call failed, falling back to keyword responses:", err);
+    return generateKeywordResponse(userMessage, context);
+  }
+}
+
+function buildSystemPromptWithContext(context: MessageContext): string {
+  let contextNote = "";
+  if (context === "emergency") {
+    contextNote = "\n\nIMPORTANT: The user is currently in an ACTIVE EMERGENCY. Prioritize immediate safety actions. Keep responses brief and actionable.";
+  } else if (context === "firstaid") {
+    contextNote = "\n\nContext: The user needs first aid guidance. Focus on clear, step-by-step instructions.";
+  }
+  return SYSTEM_PROMPT + contextNote;
 }
