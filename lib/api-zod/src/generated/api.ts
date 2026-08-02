@@ -263,7 +263,7 @@ export const SendChatMessageResponse = zod.object({
 export const listGpsBroadcastsQueryLimitDefault = 50;
 
 export const ListGpsBroadcastsQueryParams = zod.object({
-  "sessionId": zod.coerce.number().nullish(),
+  "sessionId": zod.coerce.number().int().nullish(),
   "limit": zod.coerce.number().default(listGpsBroadcastsQueryLimitDefault)
 })
 
@@ -331,5 +331,106 @@ export const GetStatsResponse = zod.object({
   "timestamp": zod.string().optional()
 }).nullish()
 })
+
+
+/**
+ * @summary List all conversations
+ */
+export const ListOpenaiConversationsResponseItem = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListOpenaiConversationsResponse = zod.array(ListOpenaiConversationsResponseItem)
+
+
+/**
+ * @summary Create a new conversation
+ */
+export const CreateOpenaiConversationBody = zod.object({
+  "title": zod.string()
+})
+
+export const CreateOpenaiConversationResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary Get conversation with messages
+ */
+export const GetOpenaiConversationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetOpenaiConversationResponse = zod.object({
+  "id": zod.number(),
+  "title": zod.string(),
+  "createdAt": zod.coerce.date(),
+  "messages": zod.array(zod.object({
+  "id": zod.number(),
+  "conversationId": zod.number(),
+  "role": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+}))
+})
+
+
+/**
+ * @summary Delete a conversation
+ */
+export const DeleteOpenaiConversationParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DeleteOpenaiConversationResponse = zod.void()
+
+
+/**
+ * @summary List messages in a conversation
+ */
+export const ListOpenaiMessagesParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ListOpenaiMessagesResponseItem = zod.object({
+  "id": zod.number(),
+  "conversationId": zod.number(),
+  "role": zod.string(),
+  "content": zod.string(),
+  "createdAt": zod.coerce.date()
+})
+export const ListOpenaiMessagesResponse = zod.array(ListOpenaiMessagesResponseItem)
+
+
+/**
+ * @summary Send a text message and receive a streaming text response
+ */
+export const SendOpenaiMessageParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SendOpenaiMessageBody = zod.object({
+  "content": zod.string()
+})
+
+export const SendOpenaiMessageResponse = zod.unknown()
+
+
+/**
+ * @summary Send audio and receive a streaming voice response
+ */
+export const SendOpenaiVoiceMessageParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SendOpenaiVoiceMessageBody = zod.object({
+  "audio": zod.string().describe('Base64-encoded audio data')
+})
+
+export const SendOpenaiVoiceMessageResponse = zod.unknown()
 
 

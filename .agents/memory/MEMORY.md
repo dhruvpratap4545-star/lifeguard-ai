@@ -1,0 +1,1 @@
+- [OpenAI Integration](openai-integration.md) — voice AI + real chat; key gotchas for voiceChatStream types, useListOpenaiMessages, and Zod v3 patch.
