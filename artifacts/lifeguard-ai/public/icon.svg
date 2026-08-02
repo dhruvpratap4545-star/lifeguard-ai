@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/AspectRatio" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="128" fill="#0a0a0b"/>
+  <path d="M256 64L100 120V240C100 355 166 460 256 490C346 460 412 355 412 240V120L256 64Z" fill="#ef4444" fill-opacity="0.2" stroke="#ef4444" stroke-width="24" stroke-linejoin="round"/>
+  <path d="M256 160V352M160 256H352" stroke="#ffffff" stroke-width="48" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "LifeGuard AI"
+description = "LifeGuard AI is a mobile-first installable PWA emergency assistant. It uses the device's accelerometer and GPS to detect falls and crashes in real time, triggers a 15-second emergency countdown, broadcasts GPS coordinates, and provides an AI-powered conversational companion for safety guidance. Built for quick solo deployment on any smartphone."
+version = "1.0.0"
+id = "artifacts/lifeguard-ai"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21821
+
+[services.development]
+run = "pnpm --filter @workspace/lifeguard-ai run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/lifeguard-ai", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/lifeguard-ai/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21821"
+BASE_PATH = "/"

@@ -3,20 +3,29 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: LifeGuard AI API — emergency session management, contacts, AI chat, GPS broadcasts
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: emergency
+    description: Emergency session management
+  - name: contacts
+    description: Emergency contacts
+  - name: chat
+    description: AI companion chat
+  - name: gps
+    description: GPS broadcast logs
+  - name: stats
+    description: Dashboard statistics
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +33,513 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /emergency-sessions:
+    get:
+      operationId: listEmergencySessions
+      tags: [emergency]
+      summary: List recent emergency sessions
+      parameters:
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 20
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, active, cancelled, resolved]
+      responses:
+        "200":
+          description: List of emergency sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/EmergencySession"
+    post:
+      operationId: createEmergencySession
+      tags: [emergency]
+      summary: Create a new emergency session (fall or crash detected)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmergencySessionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmergencySession"
+
+  /emergency-sessions/{id}:
+    get:
+      operationId: getEmergencySession
+      tags: [emergency]
+      summary: Get a specific emergency session
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: Emergency session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmergencySession"
+        "404":
+          description: Not found
+    patch:
+      operationId: updateEmergencySession
+      tags: [emergency]
+      summary: Update emergency session status
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/EmergencySessionUpdate"
+      responses:
+        "200":
+          description: Updated session
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/EmergencySession"
+
+  /contacts:
+    get:
+      operationId: listContacts
+      tags: [contacts]
+      summary: List emergency contacts
+      responses:
+        "200":
+          description: List of contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Contact"
+    post:
+      operationId: createContact
+      tags: [contacts]
+      summary: Add an emergency contact
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+
+  /contacts/{id}:
+    delete:
+      operationId: deleteContact
+      tags: [contacts]
+      summary: Remove an emergency contact
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: number
+      responses:
+        "204":
+          description: Deleted
+    patch:
+      operationId: updateContact
+      tags: [contacts]
+      summary: Update an emergency contact
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContactUpdate"
+      responses:
+        "200":
+          description: Updated contact
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Contact"
+
+  /chat-sessions:
+    get:
+      operationId: listChatSessions
+      tags: [chat]
+      summary: List AI chat sessions
+      responses:
+        "200":
+          description: List of chat sessions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatSession"
+    post:
+      operationId: createChatSession
+      tags: [chat]
+      summary: Start a new AI companion chat session
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatSessionInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatSession"
+
+  /chat-sessions/{id}/messages:
+    get:
+      operationId: listChatMessages
+      tags: [chat]
+      summary: Get messages in a chat session
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: number
+      responses:
+        "200":
+          description: List of messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a message and get AI response
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChatMessageInput"
+      responses:
+        "201":
+          description: AI response message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+
+  /gps-broadcasts:
+    get:
+      operationId: listGpsBroadcasts
+      tags: [gps]
+      summary: Get recent GPS broadcast events
+      parameters:
+        - in: query
+          name: sessionId
+          schema:
+            type: ["integer", "null"]
+        - in: query
+          name: limit
+          schema:
+            type: number
+            default: 50
+      responses:
+        "200":
+          description: List of GPS broadcasts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GpsBroadcast"
+    post:
+      operationId: createGpsBroadcast
+      tags: [gps]
+      summary: Log a GPS broadcast event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GpsBroadcastInput"
+      responses:
+        "201":
+          description: Logged
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/GpsBroadcast"
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [stats]
+      summary: Dashboard stats summary
+      responses:
+        "200":
+          description: Dashboard stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+
 components:
   schemas:
     HealthStatus:
       type: object
+      required: [status]
       properties:
         status:
           type: string
-      required:
-        - status
 
+    EmergencySession:
+      type: object
+      required: [id, triggerType, status, latitude, longitude, createdAt]
+      properties:
+        id:
+          type: number
+        triggerType:
+          type: string
+          enum: [fall, crash, manual, sos]
+        status:
+          type: string
+          enum: [pending, active, cancelled, resolved]
+        latitude:
+          type: number
+        longitude:
+          type: number
+        accelerometerPeak:
+          type: ["number", "null"]
+        countdownSeconds:
+          type: ["integer", "null"]
+        resolvedAt:
+          type: ["string", "null"]
+        notes:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    EmergencySessionInput:
+      type: object
+      required: [triggerType, latitude, longitude]
+      properties:
+        triggerType:
+          type: string
+          enum: [fall, crash, manual, sos]
+        latitude:
+          type: number
+        longitude:
+          type: number
+        accelerometerPeak:
+          type: ["number", "null"]
+        countdownSeconds:
+          type: number
+          default: 15
+        notes:
+          type: ["string", "null"]
+
+    EmergencySessionUpdate:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [pending, active, cancelled, resolved]
+        notes:
+          type: ["string", "null"]
+
+    Contact:
+      type: object
+      required: [id, name, phone, relationship, createdAt]
+      properties:
+        id:
+          type: number
+        name:
+          type: string
+        phone:
+          type: string
+        relationship:
+          type: string
+        isPrimary:
+          type: boolean
+        createdAt:
+          type: string
+
+    ContactInput:
+      type: object
+      required: [name, phone, relationship]
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        relationship:
+          type: string
+        isPrimary:
+          type: boolean
+          default: false
+
+    ContactUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+        phone:
+          type: string
+        relationship:
+          type: string
+        isPrimary:
+          type: boolean
+
+    ChatSession:
+      type: object
+      required: [id, title, createdAt]
+      properties:
+        id:
+          type: number
+        title:
+          type: string
+        context:
+          type: ["string", "null"]
+          description: Optional context tag (emergency, general, firstaid)
+        messageCount:
+          type: number
+        createdAt:
+          type: string
+
+    ChatSessionInput:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        context:
+          type: ["string", "null"]
+
+    ChatMessage:
+      type: object
+      required: [id, sessionId, role, content, createdAt]
+      properties:
+        id:
+          type: number
+        sessionId:
+          type: number
+        role:
+          type: string
+          enum: [user, assistant]
+        content:
+          type: string
+        createdAt:
+          type: string
+
+    ChatMessageInput:
+      type: object
+      required: [content]
+      properties:
+        content:
+          type: string
+
+    GpsBroadcast:
+      type: object
+      required: [id, latitude, longitude, createdAt]
+      properties:
+        id:
+          type: number
+        sessionId:
+          type: ["integer", "null"]
+        latitude:
+          type: number
+        longitude:
+          type: number
+        accuracy:
+          type: ["number", "null"]
+        speed:
+          type: ["number", "null"]
+        altitude:
+          type: ["number", "null"]
+        createdAt:
+          type: string
+
+    GpsBroadcastInput:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        sessionId:
+          type: ["integer", "null"]
+        latitude:
+          type: number
+        longitude:
+          type: number
+        accuracy:
+          type: ["number", "null"]
+        speed:
+          type: ["number", "null"]
+        altitude:
+          type: ["number", "null"]
+
+    Stats:
+      type: object
+      required: [totalEmergencies, totalContacts, resolvedEmergencies, cancelledEmergencies, recentEmergencies]
+      properties:
+        totalEmergencies:
+          type: number
+        totalContacts:
+          type: number
+        resolvedEmergencies:
+          type: number
+        cancelledEmergencies:
+          type: number
+        recentEmergencies:
+          type: array
+          items:
+            $ref: "#/components/schemas/EmergencySession"
+        lastBroadcastLocation:
+          type: object
+          nullable: true
+          properties:
+            latitude:
+              type: number
+            longitude:
+              type: number
+            timestamp:
+              type: string
